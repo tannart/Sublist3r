@@ -97,6 +97,7 @@ def parse_args():
     parser._optionals.title = "OPTIONS"
     parser.add_argument('-d', '--domain', help="Domain name to enumerate it's subdomains", required=True)
     parser.add_argument('-b', '--bruteforce', help='Enable the subbrute bruteforce module', nargs='?', default=False)
+    parser.add_argument('-a', '--names', help='List of names to use in bruteforce mode')
     parser.add_argument('-p', '--ports', help='Scan the found subdomains against specified tcp ports')
     parser.add_argument('-v', '--verbose', help='Enable Verbosity and display results in realtime', nargs='?', default=False)
     parser.add_argument('-t', '--threads', help='Number of threads to use for subbrute bruteforce', type=int, default=30)
@@ -147,12 +148,22 @@ def check_new_subdomain(enumrator, subdomain):
                and subdomain != enumrator.domain
     else:
         return subdomain not in enumrator.subdomains and subdomain != enumrator.domain
-        
+
+
 def add_subdomain(enumrator, subdomain):
     if enumrator.show_engine:
         enumrator.subdomains.append("%s:%s" % (enumrator.engine_name, subdomain))
     else:
         enumrator.subdomains.append(subdomain)
+
+
+def update_engine_sources(subdomain, source, engine_sources):
+    if subdomain in engine_sources:
+        engine_sources[subdomain] = set(list(engine_sources[subdomain]) + [source])
+    else:
+        engine_sources[subdomain] = {source}
+
+    return engine_sources
 
 
 class enumratorBase(object):
@@ -897,7 +908,7 @@ class portscan():
             t.start()
 
 
-def main(domain, threads, savefile, ports, silent, verbose, enable_bruteforce, engines, show_engine):
+def main(domain, threads, savefile, ports, silent, verbose, enable_bruteforce, engines, show_engine, names):
     bruteforce_list = set()
     search_list = set()
 
@@ -966,11 +977,7 @@ def main(domain, threads, savefile, ports, silent, verbose, enable_bruteforce, e
     if show_engine:
         # Split out the engine sources from the subdomains that have been found
         for item in subdomains_queue:
-            subdomain = item.split(':')[1]
-            if subdomain in engine_sources:
-                engine_sources[subdomain] = set(list(engine_sources[subdomain]) + [item.split(':')[0]])
-            else:
-                engine_sources[subdomain] = {item.split(':')[0]}
+            engine_sources = update_engine_sources(item.split(':')[1], item.split(':')[0], engine_sources)
         subdomains = set(engine_sources.keys())
     else:
         subdomains = set(subdomains_queue)
@@ -983,12 +990,19 @@ def main(domain, threads, savefile, ports, silent, verbose, enable_bruteforce, e
             print(G + "[-] Starting bruteforce module now using subbrute.." + W)
         record_type = False
         path_to_file = os.path.dirname(os.path.realpath(__file__))
-        subs = os.path.join(path_to_file, 'subbrute', 'names.txt')
+        if names:
+            print('Using custom names file %s' % names)
+            subs = names
+        else:
+            subs = os.path.join(path_to_file, 'subbrute', 'names.txt')
         resolvers = os.path.join(path_to_file, 'subbrute', 'resolvers.txt')
         process_count = threads
         output = False
         json_output = False
-        bruteforce_list = subbrute.print_target(parsed_domain.netloc, record_type, subs, resolvers, process_count, output, json_output, search_list, verbose)
+        bruteforce_list = subbrute.print_target(parsed_domain.netloc, record_type, subs, resolvers, process_count, output, json_output, [], verbose)
+        if show_engine:
+            for subdomain in bruteforce_list:
+                engine_sources = update_engine_sources(subdomain, 'Subbrute', engine_sources)
 
     subdomains = search_list.union(bruteforce_list)
 
@@ -1029,6 +1043,7 @@ def interactive():
     verbose = args.verbose
     engines = args.engines
     show_engine = args.show_engine
+    names = args.names
     if verbose or verbose is None:
         verbose = True
     if show_engine or show_engine is None:
@@ -1036,7 +1051,7 @@ def interactive():
     if args.no_color:
         no_color()
     banner()
-    res = main(domain, threads, savefile, ports, silent=False, verbose=verbose, enable_bruteforce=enable_bruteforce, engines=engines, show_engine=show_engine)
+    res = main(domain, threads, savefile, ports, silent=False, verbose=verbose, enable_bruteforce=enable_bruteforce, engines=engines, show_engine=show_engine, names=names)
 
 if __name__ == "__main__":
     interactive()
