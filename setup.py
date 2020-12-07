@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='Sublist3r',
-    version='1.0',
+    name='Sublist3r-lib',
+    version='0.2',
     python_requires='>=2.7',
     install_requires=['dnspython', 'requests', 'argparse; python_version==\'2.7\''],
     packages=find_packages(),
     py_modules=['sublist3r'],
     include_package_data=True,
-    url='https://github.com/aboul3la/Sublist3r',
+    url='https://github.com/aboul3la/Sublist3r-lib',
     license='GPL-2.0',
     description='Subdomains enumeration tool for penetration testers',
     classifiers=[
