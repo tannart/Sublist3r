@@ -1,5 +1,5 @@
 *.pyc
 .idea/
-Sublist3r.egg-info/
 build/
 dist/
+Sublist3r_lib.egg-info/
