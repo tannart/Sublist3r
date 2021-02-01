@@ -112,8 +112,7 @@ def write_file(filename, subdomains):
     # saving subdomains results to output file
     print("%s[-] Saving results to file: %s%s%s%s" % (Y, W, R, filename, W))
     with open(str(filename), 'wt') as f:
-        for subdomain in subdomains:
-            f.write(subdomain + os.linesep)
+        f.write(str(subdomains))
 
 
 def subdomain_sorting_key(hostname):
